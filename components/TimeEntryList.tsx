@@ -1,4 +1,4 @@
-import { Alert, Skeleton } from "@mui/material";
+import { Alert, Skeleton, Tooltip, Typography } from "@mui/material";
 import {
   DataGrid,
   DataGridProps,
@@ -41,6 +41,15 @@ export const TimeEntryList: FunctionComponent<{
       headerName: "Description",
       editable: false,
       width: 250,
+      renderCell: (params) => {
+        return (
+          <Tooltip title={params.value} disableInteractive arrow>
+            <Typography component="span" fontSize="inherit" noWrap>
+              {params.value}
+            </Typography>
+          </Tooltip>
+        );
+      },
     },
     { field: "duration", headerName: "Duration", editable: false, width: 100 },
   ];
@@ -68,6 +77,7 @@ export const TimeEntryList: FunctionComponent<{
       }
       sortModel={sortModel}
       onSortModelChange={setSortModel}
+      disableColumnMenu
     />
   );
 });
