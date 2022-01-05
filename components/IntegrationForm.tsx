@@ -71,7 +71,13 @@ export const IntegrationForm: FunctionComponent = observer(() => {
         </FormControl>
         <LoadingButton
           onClick={() => store.submitSelectedEntries()}
-          disabled={!(store.isAuthenticated && store.targetTask)}
+          disabled={
+            !(
+              store.isAuthenticated &&
+              store.targetTask &&
+              store.togglTimeEntriesSelection.length
+            )
+          }
           variant="contained"
           size="large"
           loading={store.submissionState.isLoading}

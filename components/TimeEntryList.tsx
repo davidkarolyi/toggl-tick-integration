@@ -1,5 +1,10 @@
 import { Alert, Skeleton } from "@mui/material";
-import { DataGrid, GridSelectionModel } from "@mui/x-data-grid";
+import {
+  DataGrid,
+  DataGridProps,
+  GridSelectionModel,
+  GridSortModel,
+} from "@mui/x-data-grid";
 import { observer } from "mobx-react-lite";
 import React, { FunctionComponent, useState } from "react";
 import { TimeEntry } from "../lib/adapters/types";
@@ -11,7 +16,9 @@ export const TimeEntryList: FunctionComponent<{
   selection?: Array<string>;
   onSelectionChange?: (selection: Array<string>) => void;
 }> = observer((props) => {
-  const store = useStore();
+  const [sortModel, setSortModel] = useState<GridSortModel>([
+    { field: "date", sort: "asc" },
+  ]);
 
   if (props.state.isLoading) {
     return (
@@ -27,17 +34,17 @@ export const TimeEntryList: FunctionComponent<{
     return <Alert severity="error">{props.state.error.message}</Alert>;
   }
 
-  const columns = [
+  const columns: DataGridProps["columns"] = [
     { field: "date", headerName: "Date", editable: false, width: 100 },
     {
       field: "description",
       headerName: "Description",
       editable: false,
-      width: 200,
+      width: 250,
     },
     { field: "duration", headerName: "Duration", editable: false, width: 100 },
   ];
-  const rows =
+  const rows: DataGridProps["rows"] =
     props.state.value?.map((entry) => ({
       id: entry.id,
       date: format(entry.date, "yyyy.MM.dd"),
@@ -59,6 +66,8 @@ export const TimeEntryList: FunctionComponent<{
           | ((model: GridSelectionModel) => void)
           | undefined
       }
+      sortModel={sortModel}
+      onSortModelChange={setSortModel}
     />
   );
 });
