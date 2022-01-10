@@ -25,6 +25,7 @@ const Home: NextPage = observer(() => {
                 onSelectionChange={(selection) =>
                   store.setTogglTimeEntriesSelection(selection)
                 }
+                alreadySynced={store.alreadySyncedTogglEntries}
               />
             ) : (
               <TogglAuthForm />

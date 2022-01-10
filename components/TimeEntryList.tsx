@@ -1,4 +1,4 @@
-import { Alert, Skeleton, Tooltip, Typography } from "@mui/material";
+import { Alert, Skeleton, Stack, Tooltip, Typography } from "@mui/material";
 import {
   DataGrid,
   DataGridProps,
@@ -15,6 +15,7 @@ export const TimeEntryList: FunctionComponent<{
   state: AsyncState<Array<TimeEntry>>;
   selection?: Array<string>;
   onSelectionChange?: (selection: Array<string>) => void;
+  alreadySynced?: Array<string>;
 }> = observer((props) => {
   const [sortModel, setSortModel] = useState<GridSortModel>([
     { field: "date", sort: "asc" },
@@ -43,11 +44,24 @@ export const TimeEntryList: FunctionComponent<{
       width: 250,
       renderCell: (params) => {
         return (
-          <Tooltip title={params.value} disableInteractive arrow>
-            <Typography component="span" fontSize="inherit" noWrap>
-              {params.value}
-            </Typography>
-          </Tooltip>
+          <Stack maxWidth="100%">
+            <Tooltip title={params.value} disableInteractive arrow>
+              <Typography component="span" fontSize="inherit" noWrap>
+                {params.value}
+              </Typography>
+            </Tooltip>
+
+            {props.alreadySynced?.includes(params.id.toString()) && (
+              <Typography
+                fontWeight="light"
+                color="gray"
+                component="span"
+                fontSize="inherit"
+              >
+                (already synced)
+              </Typography>
+            )}
+          </Stack>
         );
       },
     },

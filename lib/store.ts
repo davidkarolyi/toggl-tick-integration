@@ -10,7 +10,7 @@ import {
 } from "./adapters/types";
 import { TogglAdapter } from "./adapters/toggl";
 import { TickAdapter } from "./adapters/tick";
-import { startOfToday, subWeeks } from "date-fns";
+import { isSameDay, startOfToday, subWeeks } from "date-fns";
 import { DateRange } from "@mui/lab";
 
 export class Store {
@@ -45,6 +45,14 @@ export class Store {
 
   get isAuthenticated(): boolean {
     return Boolean(this.tick.value && this.toggl.value);
+  }
+
+  get alreadySyncedTogglEntries(): Array<string> {
+    return (
+      this.togglTimeEntries.value
+        ?.filter(this.isEntryAlreadySynchronized.bind(this))
+        .map(({ id }) => id) || []
+    );
   }
 
   setAlert(alert: Alert | null) {
@@ -116,21 +124,26 @@ export class Store {
     );
   }
 
-  getTickTimeEntries() {
+  async getTickTimeEntries() {
     if (!this.targetTask) this.setTargetTaskNotSelectedError();
     else {
-      this.asyncAction(this.tickTimeEntries, async () => {
-        const entries = await this.tick.value?.getTimeEntries(
-          this.dateRange[0] as Date,
-          this.dateRange[1] as Date
-        );
-        return entries?.filter((entry) => entry.taskId === this.targetTask);
-      });
+      const { error } = await this.asyncAction(
+        this.tickTimeEntries,
+        async () => {
+          const entries = await this.tick.value?.getTimeEntries(
+            this.dateRange[0] as Date,
+            this.dateRange[1] as Date
+          );
+          return entries?.filter((entry) => entry.taskId === this.targetTask);
+        }
+      );
+
+      if (!error) this.selectAllNonSyncedEntries();
     }
   }
 
   async getTogglTimeEntries() {
-    const { value: entries, error } = await this.asyncAction(
+    const { error } = await this.asyncAction(
       this.togglTimeEntries,
       async () => {
         const entries = await this.toggl.value?.getTimeEntries(
@@ -141,10 +154,7 @@ export class Store {
       }
     );
 
-    if (!error && entries) {
-      // select all time entries by default
-      this.setTogglTimeEntriesSelection(entries.map((entry) => entry.id));
-    }
+    if (!error) this.selectAllNonSyncedEntries();
   }
 
   setTargetTaskNotSelectedError() {
@@ -207,6 +217,25 @@ export class Store {
       });
       console.error(value);
     }
+  }
+
+  private selectAllNonSyncedEntries() {
+    const selection =
+      this.togglTimeEntries.value
+        ?.filter((entry) => !this.isEntryAlreadySynchronized(entry))
+        .map(({ id }) => id) || [];
+    this.setTogglTimeEntriesSelection(selection);
+  }
+
+  private isEntryAlreadySynchronized(entry: TimeEntry): boolean {
+    return (
+      this.tickTimeEntries.value?.some(
+        (tickEntry) =>
+          tickEntry.description.trim() === entry.description.trim() &&
+          isSameDay(tickEntry.date, entry.date) &&
+          Math.abs(tickEntry.durationInSeconds - entry.durationInSeconds) < 60
+      ) || false
+    );
   }
 
   private async asyncAction<T>(
