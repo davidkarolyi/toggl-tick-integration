@@ -35,6 +35,8 @@ export const TimeEntryList: FunctionComponent<{
     return <Alert severity="error">{props.state.error.message}</Alert>;
   }
 
+  const { total, selectedTotal } = getTotalHours(props.state, props.selection);
+
   const columns: DataGridProps["columns"] = [
     { field: "date", headerName: "Date", editable: false, width: 100 },
     {
@@ -76,22 +78,63 @@ export const TimeEntryList: FunctionComponent<{
     })) || [];
 
   return (
-    <DataGrid
-      rows={rows}
-      columns={columns}
-      pageSize={20}
-      rowsPerPageOptions={[20]}
-      autoHeight
-      checkboxSelection={Boolean(props.selection)}
-      selectionModel={props.selection}
-      onSelectionModelChange={
-        props.onSelectionChange as
-          | ((model: GridSelectionModel) => void)
-          | undefined
-      }
-      sortModel={sortModel}
-      onSortModelChange={setSortModel}
-      disableColumnMenu
-    />
+    <>
+      <DataGrid
+        rows={rows}
+        columns={columns}
+        pageSize={20}
+        rowsPerPageOptions={[20]}
+        autoHeight
+        checkboxSelection={Boolean(props.selection)}
+        selectionModel={props.selection}
+        onSelectionModelChange={
+          props.onSelectionChange as
+            | ((model: GridSelectionModel) => void)
+            | undefined
+        }
+        sortModel={sortModel}
+        onSortModelChange={setSortModel}
+        disableColumnMenu
+      />
+      <Typography fontWeight="bold" mt={2} textAlign="end">
+        Total: {total}
+      </Typography>
+      {selectedTotal && (
+        <Typography fontWeight="bold" textAlign="end">
+          Selected Total: {selectedTotal}
+        </Typography>
+      )}
+    </>
   );
 });
+
+function getTotalHours(
+  state: AsyncState<Array<TimeEntry>>,
+  selection?: Array<string>
+): TotalHours {
+  if (!state.value)
+    return {
+      total: "-",
+    };
+
+  let selectedTotalSec = 0;
+  let totalSec = 0;
+
+  for (const entry of state.value) {
+    totalSec += entry.durationInSeconds;
+    if (selection?.includes(entry.id))
+      selectedTotalSec += entry.durationInSeconds;
+  }
+
+  return {
+    total: (totalSec / 60 / 60).toFixed(2) + "h",
+    selectedTotal: selection
+      ? (selectedTotalSec / 60 / 60).toFixed(2) + "h"
+      : undefined,
+  };
+}
+
+type TotalHours = {
+  total: string;
+  selectedTotal?: string;
+};
