@@ -40,12 +40,12 @@ export const IntegrationForm: FunctionComponent = observer(() => {
           <Select
             labelId="project-select-label"
             id="project-select"
-            value={store.targetProject}
+            value={store.selectedTargetProject}
             label="Project"
             onChange={(event) => store.setTargetProject(event.target.value)}
-            disabled={!store.tick.value || !store.tickProjects.value}
+            disabled={!store.target.value || !store.targetProjects.value}
           >
-            {store.tickProjects.value?.map((project) => (
+            {store.targetProjects.value?.map((project) => (
               <MenuItem key={project.id} value={project.id}>
                 {project.name}
               </MenuItem>
@@ -57,12 +57,12 @@ export const IntegrationForm: FunctionComponent = observer(() => {
           <Select
             labelId="task-select-label"
             id="task-select"
-            value={store.targetTask}
+            value={store.selectedTargetTask}
             label="Task"
             onChange={(event) => store.setTargetTask(event.target.value)}
-            disabled={!store.targetProject || !store.tickTasks.value}
+            disabled={!store.selectedTargetProject || !store.targetTasks.value}
           >
-            {store.tickTasks.value?.map((task) => (
+            {store.targetTasks.value?.map((task) => (
               <MenuItem key={task.id} value={task.id}>
                 {task.name}
               </MenuItem>
@@ -74,8 +74,8 @@ export const IntegrationForm: FunctionComponent = observer(() => {
           disabled={
             !(
               store.isAuthenticated &&
-              store.targetTask &&
-              store.togglTimeEntriesSelection.length
+              store.selectedTargetTask &&
+              store.sourceTimeEntriesSelection.length
             )
           }
           variant="contained"
