@@ -8,13 +8,22 @@ import {
   Task,
   TimeEntry,
 } from "../adapters/types";
-import { isSameDay, startOfToday, subWeeks } from "date-fns";
+import {
+  endOfDay,
+  endOfMonth,
+  isSameDay,
+  startOfMonth,
+  subMinutes,
+} from "date-fns";
 import { DateRange } from "@mui/lab";
 import { Alert, AsyncState, StoreOptions } from "./types";
 
 export class Store<S extends AdapterCredentials, T extends AdapterCredentials> {
   alert: Alert | null = null;
-  dateRange: DateRange<Date> = [subWeeks(startOfToday(), 2), startOfToday()];
+  dateRange: DateRange<Date> = [
+    startOfMonth(new Date()),
+    endOfMonth(new Date()),
+  ];
 
   source: AsyncState<SourceAdapter<S>> = { isLoading: false };
   sourceTimeEntries: AsyncState<Array<TimeEntry>> = {
@@ -50,6 +59,15 @@ export class Store<S extends AdapterCredentials, T extends AdapterCredentials> {
         ?.filter(this.isEntryAlreadySynchronized.bind(this))
         .map(({ id }) => id) || []
     );
+  }
+
+  private get correctedDateRange(): DateRange<Date> {
+    const [startDate, endDate] = this.dateRange;
+    const correctedStartDate = startDate
+      ? subMinutes(startDate, startDate.getTimezoneOffset())
+      : null;
+    const correctedEndDate = endDate ? endOfDay(endDate) : null;
+    return [correctedStartDate, correctedEndDate];
   }
 
   setAlert(alert: Alert | null) {
@@ -177,8 +195,8 @@ export class Store<S extends AdapterCredentials, T extends AdapterCredentials> {
         this.targetTimeEntries,
         async () => {
           const entries = await this.target.value?.getTimeEntries(
-            this.dateRange[0] as Date,
-            this.dateRange[1] as Date
+            this.correctedDateRange[0] as Date,
+            this.correctedDateRange[1] as Date
           );
           return entries?.filter(
             (entry) => entry.taskId === this.selectedTargetTask
@@ -195,8 +213,8 @@ export class Store<S extends AdapterCredentials, T extends AdapterCredentials> {
       this.sourceTimeEntries,
       async () => {
         const entries = await this.source.value?.getTimeEntries(
-          this.dateRange[0] as Date,
-          this.dateRange[1] as Date
+          this.correctedDateRange[0] as Date,
+          this.correctedDateRange[1] as Date
         );
         return entries;
       }
