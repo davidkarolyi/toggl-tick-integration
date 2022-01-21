@@ -1,3 +1,5 @@
+import { AxiosRequestConfig } from "axios";
+
 export interface SourceAdapter<C extends AdapterCredentials> {
   credentials: C;
   init(credentials: C): Promise<void>;
@@ -33,3 +35,8 @@ export type TimeEntry = {
   date: Date;
   durationInSeconds: number;
 };
+
+export type ProxyRequestConfig = Pick<
+  AxiosRequestConfig,
+  "url" | "method" | "headers" | "params" | "data"
+>;

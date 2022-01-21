@@ -1,7 +1,7 @@
 import { proxy } from "./proxy";
 import { Project, TargetAdapter, Task, TimeEntry } from "./types";
 
-const BASE_URL = "https://www.tickspot.com";
+export const BASE_URL = "https://www.tickspot.com";
 const API_URL = `${BASE_URL}/api/v2`;
 
 export class TickAdapter implements TargetAdapter<TickCredentials> {

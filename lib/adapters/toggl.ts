@@ -1,7 +1,8 @@
 import { proxy } from "./proxy";
 import { SourceAdapter, TimeEntry } from "./types";
 
-const API_URL = "https://api.track.toggl.com/api/v8";
+export const BASE_URL = "https://api.track.toggl.com";
+const API_URL = `${BASE_URL}/api/v8`;
 
 export class TogglAdapter implements SourceAdapter<TogglCredentials> {
   private unsafeCredentials?: TogglCredentials;
