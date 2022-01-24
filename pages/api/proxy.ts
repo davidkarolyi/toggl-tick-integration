@@ -27,7 +27,7 @@ export default async function handler(
         .status(axiosError.response?.status || 500)
         .json(axiosError.response?.data);
     } else {
-      res.status(400).json({ message: axiosError.message });
+      res.status(400).json({ message: (error as Error).message });
     }
   }
 }

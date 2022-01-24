@@ -17,6 +17,7 @@ import {
 } from "date-fns";
 import { DateRange } from "@mui/lab";
 import { Alert, AsyncState, StoreOptions } from "./types";
+import { AxiosError } from "axios";
 
 export class Store<S extends AdapterCredentials, T extends AdapterCredentials> {
   alert: Alert | null = null;
@@ -319,7 +320,16 @@ export class Store<S extends AdapterCredentials, T extends AdapterCredentials> {
         state.error = undefined;
       });
     } catch (error) {
-      this.setAlert({ type: "error", message: (error as Error).message });
+      const axiosError = error as AxiosError;
+      if (axiosError.isAxiosError && axiosError.response?.data) {
+        this.setAlert({
+          type: "error",
+          message: `${axiosError.message}. Check the browser console for detailed error response.`,
+        });
+        console.error(axiosError.response.data);
+      } else
+        this.setAlert({ type: "error", message: (error as Error).message });
+
       runInAction(() => {
         state.isLoading = false;
         state.error = error as Error;
