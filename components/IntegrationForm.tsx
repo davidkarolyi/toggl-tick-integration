@@ -77,16 +77,10 @@ export const IntegrationForm: FunctionComponent = observer(() => {
         </FormControl>
         <LoadingButton
           onClick={() => store.submitSelectedEntries()}
-          disabled={
-            !(
-              store.isAuthenticated &&
-              store.selectedTargetTask &&
-              store.sourceTimeEntriesSelection.length
-            )
-          }
+          disabled={!store.isSubmitable}
           variant="contained"
           size="large"
-          loading={store.submissionState.isLoading}
+          loading={store.submissionResult.isLoading}
         >
           Submit selection
         </LoadingButton>

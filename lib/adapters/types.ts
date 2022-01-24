@@ -13,6 +13,7 @@ export interface TargetAdapter<C extends AdapterCredentials> {
   getProjects(): Promise<Array<Project>>;
   getTasks(projectId: Project["id"]): Promise<Array<Task>>;
   createTimeEntry(entry: TimeEntry): Promise<void>;
+  deleteTimeEntry(id: TimeEntry["id"]): Promise<void>;
 }
 
 export type AdapterCredentials = Record<string, unknown>;

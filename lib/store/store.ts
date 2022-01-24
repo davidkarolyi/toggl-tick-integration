@@ -30,10 +30,14 @@ export class Store<S extends AdapterCredentials, T extends AdapterCredentials> {
   targetTimeEntries: AsyncState<Array<TimeEntry>> = {
     isLoading: false,
   };
+  allowDeletionFromTarget: boolean = false;
+  targetTimeEntriesSelection: Array<string> = [];
 
-  submissionState: AsyncState<{
-    failed: Array<{ entry: TimeEntry; error: Error }>;
-    submitted: Array<TimeEntry>;
+  submissionResult: AsyncState<{
+    created: Array<TimeEntry>;
+    failedToCreate: Array<{ entry: TimeEntry; error: Error }>;
+    deleted: Array<TimeEntry>;
+    failedToDelete: Array<{ entry: TimeEntry; error: Error }>;
   }> = { isLoading: false };
 
   constructor(private readonly options: StoreOptions<S, T>) {
@@ -49,6 +53,19 @@ export class Store<S extends AdapterCredentials, T extends AdapterCredentials> {
       this.sourceTimeEntries.value
         ?.filter(this.isEntryAlreadySynchronized.bind(this))
         .map(({ id }) => id) || []
+    );
+  }
+
+  get isSubmitable(): boolean {
+    const atLeastOneItemSelected = Boolean(
+      this.sourceTimeEntriesSelection.length ||
+        (this.targetTimeEntriesSelection.length && this.allowDeletionFromTarget)
+    );
+
+    return (
+      this.isAuthenticated &&
+      Boolean(this.selectedTargetTask) &&
+      atLeastOneItemSelected
     );
   }
 
@@ -69,8 +86,18 @@ export class Store<S extends AdapterCredentials, T extends AdapterCredentials> {
   }
 
   setTargetProject(projectId: Project["id"]) {
+    if (projectId === this.selectedTargetProject) return;
     this.selectedTargetProject = projectId;
+    this.targetTimeEntriesSelection = [];
+    this.allowDeletionFromTarget = false;
+    this.selectedTargetTask = "";
+    this.setTargetTaskNotSelectedError();
     this.getTargetTasks(projectId);
+  }
+
+  toggleAllowDeletionFromTarget() {
+    this.targetTimeEntriesSelection = [];
+    this.allowDeletionFromTarget = !this.allowDeletionFromTarget;
   }
 
   async loadStoredCredentials() {
@@ -98,6 +125,8 @@ export class Store<S extends AdapterCredentials, T extends AdapterCredentials> {
     this.targetProjects = { isLoading: false };
     this.targetTasks = { isLoading: false };
     this.targetTimeEntries = { isLoading: false };
+    this.targetTimeEntriesSelection = [];
+    this.allowDeletionFromTarget = false;
   }
 
   async authTarget(credentials: T) {
@@ -216,55 +245,80 @@ export class Store<S extends AdapterCredentials, T extends AdapterCredentials> {
     this.sourceTimeEntriesSelection = selection;
   }
 
+  setTargetTimeEntriesSelection(selection: Array<string>) {
+    this.targetTimeEntriesSelection = selection;
+  }
+
   async submitSelectedEntries() {
-    const { value, error } = await this.asyncAction(
-      this.submissionState,
+    const { error } = await this.asyncAction(
+      this.submissionResult,
       async () => {
-        if (!this.sourceTimeEntries.value) {
-          throw new Error("There are no time entries to submit.");
-        }
+        const created: Array<TimeEntry> = [];
+        const failedToCreate: Array<{ entry: TimeEntry; error: Error }> = [];
+        const deleted: Array<TimeEntry> = [];
+        const failedToDelete: Array<{ entry: TimeEntry; error: Error }> = [];
 
-        const submitted: Array<TimeEntry> = [];
-        const failed: Array<{ entry: TimeEntry; error: Error }> = [];
-
-        for (const entry of this.sourceTimeEntries.value) {
+        for (const entry of this.sourceTimeEntries.value || []) {
           try {
             if (this.sourceTimeEntriesSelection.includes(entry.id)) {
               await this.target.value?.createTimeEntry({
                 ...entry,
                 taskId: this.selectedTargetTask,
               });
-              submitted.push(entry);
+              created.push(entry);
             }
           } catch (error) {
-            failed.push({ entry, error: error as Error });
+            failedToCreate.push({ entry, error: error as Error });
           }
         }
 
-        return { failed, submitted };
+        for (const entry of this.targetTimeEntries.value || []) {
+          try {
+            if (this.targetTimeEntriesSelection.includes(entry.id)) {
+              await this.target.value?.deleteTimeEntry(entry.id);
+              deleted.push(entry);
+            }
+          } catch (error) {
+            failedToDelete.push({ entry, error: error as Error });
+          }
+        }
+
+        return { failedToCreate, created, deleted, failedToDelete };
       }
     );
 
-    if (!error && value?.submitted.length) this.getTargetTimeEntries();
-
-    if (!value?.failed.length) {
-      this.setAlert({
-        type: "success",
-        message: `Successfully created all ${
-          value!.submitted.length
-        } entries in ${this.options.target.name}.`,
-      });
-    } else {
-      this.setAlert({
-        type: "warning",
-        message: `Failed to create ${value?.failed.length} entries, created ${
-          value?.submitted.length
-        }/${
-          value!.submitted.length + value!.failed.length
-        }. Check the browser console for detailed error messages.`,
-      });
-      console.error(value);
+    if (!error) {
+      this.setSubmissionResultAlert();
+      this.getTargetTimeEntries();
     }
+  }
+
+  private setSubmissionResultAlert() {
+    if (!this.submissionResult.value) return;
+    const result = this.submissionResult.value;
+
+    if (!result.failedToCreate.length && !result.failedToDelete.length) {
+      return this.setAlert({
+        type: "success",
+        message: `Successfully applied all changes to ${this.options.target.name}`,
+      });
+    }
+
+    let message = "";
+    if (result.failedToCreate.length && !result.failedToDelete.length)
+      message = `Failed to create ${result.failedToCreate.length} entries in`;
+    else if (!result.failedToCreate.length && result.failedToDelete.length)
+      message = `Failed to delete ${result.failedToDelete.length} entries from`;
+    else
+      message = `Failed to create ${result.failedToCreate.length}, and delete ${result.failedToDelete.length} entries from`;
+    message += ` ${this.options.target.name}. Check the browser console for more details.`;
+
+    this.setAlert({
+      type: "warning",
+      message,
+    });
+
+    console.error({ ...result });
   }
 
   private selectAllNonSyncedEntries() {

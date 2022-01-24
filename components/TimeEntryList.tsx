@@ -16,6 +16,7 @@ export const TimeEntryList: FunctionComponent<{
   selection?: Array<string>;
   onSelectionChange?: (selection: Array<string>) => void;
   alreadySynced?: Array<string>;
+  customCheckbox?: React.JSXElementConstructor<any>;
 }> = observer((props) => {
   const [sortModel, setSortModel] = useState<GridSortModel>([
     { field: "date", sort: "asc" },
@@ -82,8 +83,8 @@ export const TimeEntryList: FunctionComponent<{
       <DataGrid
         rows={rows}
         columns={columns}
-        pageSize={20}
-        rowsPerPageOptions={[20]}
+        pageSize={100}
+        rowsPerPageOptions={[100]}
         autoHeight
         checkboxSelection={Boolean(props.selection)}
         selectionModel={props.selection}
@@ -95,6 +96,9 @@ export const TimeEntryList: FunctionComponent<{
         sortModel={sortModel}
         onSortModelChange={setSortModel}
         disableColumnMenu
+        components={{
+          BaseCheckbox: props.customCheckbox,
+        }}
       />
       <Typography fontWeight="bold" mt={2} textAlign="end">
         Total: {total}
