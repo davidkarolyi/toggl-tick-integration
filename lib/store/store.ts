@@ -39,6 +39,7 @@ export class Store<S extends AdapterCredentials, T extends AdapterCredentials> {
     deleted: Array<TimeEntry>;
     failedToDelete: Array<{ entry: TimeEntry; error: Error }>;
   }> = { isLoading: false };
+  refreshState: AsyncState<void> = { isLoading: false };
 
   constructor(private readonly options: StoreOptions<S, T>) {
     makeAutoObservable(this);
@@ -51,7 +52,15 @@ export class Store<S extends AdapterCredentials, T extends AdapterCredentials> {
   get alreadySyncedSourceEntries(): Array<string> {
     return (
       this.sourceTimeEntries.value
-        ?.filter(this.isEntryAlreadySynchronized.bind(this))
+        ?.filter(this.isSourceEntryAlreadySynchronized.bind(this))
+        .map(({ id }) => id) || []
+    );
+  }
+
+  get targetEntriesNotExistingInSource(): Array<string> {
+    return (
+      this.targetTimeEntries.value
+        ?.filter((entry) => !this.doesTargetEntryExistsInSource(entry))
         .map(({ id }) => id) || []
     );
   }
@@ -98,6 +107,7 @@ export class Store<S extends AdapterCredentials, T extends AdapterCredentials> {
   toggleAllowDeletionFromTarget() {
     this.targetTimeEntriesSelection = [];
     this.allowDeletionFromTarget = !this.allowDeletionFromTarget;
+    this.selectDifferences();
   }
 
   async loadStoredCredentials() {
@@ -214,7 +224,7 @@ export class Store<S extends AdapterCredentials, T extends AdapterCredentials> {
         }
       );
 
-      if (!error) this.selectAllNonSyncedEntries();
+      if (!error) this.selectDifferences();
     }
   }
 
@@ -229,7 +239,7 @@ export class Store<S extends AdapterCredentials, T extends AdapterCredentials> {
       }
     );
 
-    if (!error) this.selectAllNonSyncedEntries();
+    if (!error) this.selectDifferences();
   }
 
   setTargetTaskNotSelectedError() {
@@ -239,6 +249,17 @@ export class Store<S extends AdapterCredentials, T extends AdapterCredentials> {
       ),
       isLoading: false,
     };
+  }
+
+  refresh() {
+    this.asyncAction(this.refreshState, async () => {
+      await Promise.all([
+        this.getSourceTimeEntries(),
+        this.getTargetTimeEntries(),
+      ]);
+
+      this.selectDifferences();
+    });
   }
 
   setSourceTimeEntriesSelection(selection: Array<string>) {
@@ -272,14 +293,16 @@ export class Store<S extends AdapterCredentials, T extends AdapterCredentials> {
           }
         }
 
-        for (const entry of this.targetTimeEntries.value || []) {
-          try {
-            if (this.targetTimeEntriesSelection.includes(entry.id)) {
-              await this.target.value?.deleteTimeEntry(entry.id);
-              deleted.push(entry);
+        if (this.allowDeletionFromTarget) {
+          for (const entry of this.targetTimeEntries.value || []) {
+            try {
+              if (this.targetTimeEntriesSelection.includes(entry.id)) {
+                await this.target.value?.deleteTimeEntry(entry.id);
+                deleted.push(entry);
+              }
+            } catch (error) {
+              failedToDelete.push({ entry, error: error as Error });
             }
-          } catch (error) {
-            failedToDelete.push({ entry, error: error as Error });
           }
         }
 
@@ -321,29 +344,44 @@ export class Store<S extends AdapterCredentials, T extends AdapterCredentials> {
     console.error({ ...result });
   }
 
-  private selectAllNonSyncedEntries() {
-    const selection =
+  private selectDifferences() {
+    const notSyncedEntries =
       this.sourceTimeEntries.value
-        ?.filter((entry) => !this.isEntryAlreadySynchronized(entry))
+        ?.filter((entry) => !this.isSourceEntryAlreadySynchronized(entry))
         .map(({ id }) => id) || [];
-    this.setSourceTimeEntriesSelection(selection);
+
+    this.setSourceTimeEntriesSelection(notSyncedEntries);
+    this.setTargetTimeEntriesSelection(this.targetEntriesNotExistingInSource);
   }
 
-  private isEntryAlreadySynchronized(entry: TimeEntry): boolean {
+  private isSourceEntryAlreadySynchronized(entry: TimeEntry): boolean {
     return (
-      this.targetTimeEntries.value?.some(
-        (targetEntry) =>
-          targetEntry.description.trim() === entry.description.trim() &&
-          isSameDay(targetEntry.date, entry.date) &&
-          Math.abs(targetEntry.durationInSeconds - entry.durationInSeconds) < 60
+      this.targetTimeEntries.value?.some((targetEntry) =>
+        this.areEntriesSimilar(entry, targetEntry)
       ) || false
     );
   }
 
-  private async asyncAction<T>(
-    state: AsyncState<T>,
-    action: () => Promise<T>
-  ): Promise<AsyncState<T>> {
+  private doesTargetEntryExistsInSource(entry: TimeEntry): boolean {
+    return (
+      this.sourceTimeEntries.value?.some((sourceEntry) =>
+        this.areEntriesSimilar(entry, sourceEntry)
+      ) || false
+    );
+  }
+
+  private areEntriesSimilar(entryA: TimeEntry, entryB: TimeEntry): boolean {
+    return (
+      entryA.description.trim() === entryB.description.trim() &&
+      isSameDay(entryA.date, entryB.date) &&
+      Math.abs(entryA.durationInSeconds - entryB.durationInSeconds) < 60
+    );
+  }
+
+  private async asyncAction<V>(
+    state: AsyncState<V>,
+    action: () => Promise<V>
+  ): Promise<AsyncState<V>> {
     state.isLoading = true;
     try {
       const value = await action();

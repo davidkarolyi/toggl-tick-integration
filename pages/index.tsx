@@ -48,7 +48,10 @@ const Home: NextPage = observer(() => {
                 onSelectionChange={(selection) =>
                   store.setSourceTimeEntriesSelection(selection)
                 }
-                alreadySynced={store.alreadySyncedSourceEntries}
+                label={{
+                  text: "already synced",
+                  entries: store.alreadySyncedSourceEntries,
+                }}
               />
             ) : (
               <TogglAuthForm />
@@ -102,6 +105,10 @@ const Home: NextPage = observer(() => {
                       store.setTargetTimeEntriesSelection(selection)
                     }
                     customCheckbox={DeletionCheckbox}
+                    label={{
+                      text: "not exists in Toggl",
+                      entries: store.targetEntriesNotExistingInSource,
+                    }}
                   />
                 ) : (
                   <TimeEntryList

@@ -5,18 +5,21 @@ import {
   GridSelectionModel,
   GridSortModel,
 } from "@mui/x-data-grid";
-import { observer } from "mobx-react-lite";
 import React, { FunctionComponent, useState } from "react";
 import { TimeEntry } from "../lib/adapters/types";
 import { AsyncState } from "../lib/store/types";
 import { format } from "date-fns";
+import { observer } from "mobx-react-lite";
 
 export const TimeEntryList: FunctionComponent<{
   state: AsyncState<Array<TimeEntry>>;
   selection?: Array<string>;
   onSelectionChange?: (selection: Array<string>) => void;
-  alreadySynced?: Array<string>;
   customCheckbox?: React.JSXElementConstructor<any>;
+  label?: {
+    text: string;
+    entries: Array<string>;
+  };
 }> = observer((props) => {
   const [sortModel, setSortModel] = useState<GridSortModel>([
     { field: "date", sort: "asc" },
@@ -54,14 +57,14 @@ export const TimeEntryList: FunctionComponent<{
               </Typography>
             </Tooltip>
 
-            {props.alreadySynced?.includes(params.id.toString()) && (
+            {props.label?.entries.includes(params.id.toString()) && (
               <Typography
                 fontWeight="light"
                 color="gray"
                 component="span"
                 fontSize="inherit"
               >
-                (already synced)
+                ({props.label.text})
               </Typography>
             )}
           </Stack>
