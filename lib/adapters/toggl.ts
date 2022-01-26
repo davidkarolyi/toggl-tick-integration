@@ -1,59 +1,25 @@
 import { proxy } from "./proxy";
-import { Project, ReaderAdapter, Task, TimeEntry } from "./types";
+import { SourceAdapter, TimeEntry } from "./types";
 
 const API_URL = "https://api.track.toggl.com/api/v8";
 
-export class TogglAdapter implements ReaderAdapter {
-  private constructor(private readonly token: string) {}
+export class TogglAdapter implements SourceAdapter<TogglCredentials> {
+  private unsafeCredentials?: TogglCredentials;
+
+  get credentials(): TogglCredentials {
+    if (this.unsafeCredentials) return this.unsafeCredentials;
+    else throw new Error("Adapter haven't initialized yet");
+  }
 
   private get authHeaders() {
     return {
-      Authorization: "Basic " + btoa(`${this.token}:api_token`),
+      Authorization: "Basic " + btoa(`${this.credentials.token}:api_token`),
     };
   }
 
-  static async init(token: string) {
-    const adapter = new TogglAdapter(token);
-    await adapter.testCredentials();
-
-    return adapter;
-  }
-
-  async getProjects(): Promise<Array<Project>> {
-    let projects: Array<Project> = [];
-    let alreadyListed: { [projectId: number]: boolean } = {};
-
-    for (const workspaceId of await this.getWorkspaces()) {
-      const { data } = await proxy({
-        method: "GET",
-        url: `${API_URL}/workspaces/${workspaceId}/projects`,
-        headers: this.authHeaders,
-      });
-
-      data.forEach((project: { id: number; name: string }) => {
-        if (alreadyListed[project.id]) return;
-        alreadyListed[project.id] = true;
-        projects.push({ id: `${project.id}`, name: project.name });
-      });
-    }
-
-    return projects;
-  }
-
-  async getTasks(projectId: string): Promise<Task[]> {
-    const { data: body } = await proxy({
-      method: "GET",
-      url: `${API_URL}/projects/${projectId}/tasks`,
-      headers: this.authHeaders,
-    });
-
-    return body.map(
-      (task: { name: string; id: number; pid: number }): Task => ({
-        id: `${task.id}`,
-        projectId: `${task.pid}`,
-        name: task.name,
-      })
-    );
+  async init(credentials: TogglCredentials) {
+    this.unsafeCredentials = credentials;
+    await this.testCredentials();
   }
 
   async getTimeEntries(from: Date, to: Date): Promise<TimeEntry[]> {
@@ -84,16 +50,6 @@ export class TogglAdapter implements ReaderAdapter {
     );
   }
 
-  private async getWorkspaces(): Promise<Array<number>> {
-    const { data: body } = await proxy({
-      method: "GET",
-      url: `${API_URL}/workspaces`,
-      headers: this.authHeaders,
-    });
-
-    return body.map((workspace: { id: number }) => workspace.id);
-  }
-
   private async testCredentials(): Promise<void> {
     await proxy({
       method: "GET",
@@ -102,3 +58,7 @@ export class TogglAdapter implements ReaderAdapter {
     });
   }
 }
+
+export type TogglCredentials = {
+  token: string;
+};

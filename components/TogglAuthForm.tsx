@@ -16,13 +16,13 @@ export const TogglAuthForm: FunctionComponent = observer(() => {
         type="password"
         value={token}
         onChange={(event) => setToken(event.target.value)}
-        disabled={store.toggl.isLoading}
+        disabled={store.source.isLoading}
       />
       <LoadingButton
         variant="contained"
         size="large"
-        onClick={() => store.authToggl(token)}
-        loading={store.toggl.isLoading}
+        onClick={() => store.authSource({ token })}
+        loading={store.source.isLoading}
       >
         Authenticate
       </LoadingButton>

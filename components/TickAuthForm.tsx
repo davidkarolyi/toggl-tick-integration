@@ -10,8 +10,8 @@ export const TickAuthForm: FunctionComponent = observer(() => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const onSubmit = () => store.authTick(email, password);
-  const { isLoading } = store.tick;
+  const onSubmit = () => store.authTarget({ email, password });
+  const { isLoading } = store.target;
 
   return (
     <Stack spacing={2}>

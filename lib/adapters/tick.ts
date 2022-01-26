@@ -1,17 +1,16 @@
 import { proxy } from "./proxy";
-import {
-  Project,
-  ReaderAdapter,
-  Task,
-  TimeEntry,
-  WriterAdapter,
-} from "./types";
+import { Project, TargetAdapter, Task, TimeEntry } from "./types";
 
 const BASE_URL = "https://www.tickspot.com";
 const API_URL = `${BASE_URL}/api/v2`;
 
-export class TickAdapter implements ReaderAdapter, WriterAdapter {
-  private constructor(private readonly credentials: TickCredentials) {}
+export class TickAdapter implements TargetAdapter<TickCredentials> {
+  private tokenCredentials?: TokenCredentials;
+
+  get credentials(): TokenCredentials {
+    if (this.tokenCredentials) return this.tokenCredentials;
+    else throw new Error("Adapter haven't initialized yet");
+  }
 
   private get authHeaders() {
     return {
@@ -24,21 +23,28 @@ export class TickAdapter implements ReaderAdapter, WriterAdapter {
     return `${BASE_URL}/${this.credentials.subscriptionId}/api/v2`;
   }
 
-  static async init(email: string, password: string) {
-    const { data: body } = await proxy({
-      method: "GET",
-      url: `${API_URL}/roles.json`,
-      headers: {
-        "User-Agent": `TogglTickIntegration (${email})`,
-        Authorization: "Basic " + btoa(`${email}:${password}`),
-      },
-    });
+  async init(credentials: TickCredentials) {
+    if ("token" in credentials) {
+      this.tokenCredentials = credentials;
+    } else {
+      const { data: body } = await proxy({
+        method: "GET",
+        url: `${API_URL}/roles.json`,
+        headers: {
+          "User-Agent": `TogglTickIntegration (${credentials.email})`,
+          Authorization:
+            "Basic " + btoa(`${credentials.email}:${credentials.password}`),
+        },
+      });
 
-    return new TickAdapter({
-      token: body[0].api_token,
-      email,
-      subscriptionId: body[0].subscription_id,
-    });
+      this.tokenCredentials = {
+        token: body[0].api_token,
+        email: credentials.email,
+        subscriptionId: body[0].subscription_id,
+      };
+    }
+
+    await this.testCredentials();
   }
 
   async getProjects(): Promise<Array<Project>> {
@@ -113,10 +119,25 @@ export class TickAdapter implements ReaderAdapter, WriterAdapter {
       },
     });
   }
+
+  private async testCredentials() {
+    await proxy({
+      method: "GET",
+      url: `${this.subURL}/users.json`,
+      headers: this.authHeaders,
+    });
+  }
 }
 
-type TickCredentials = {
+type EmailPasswordCredentials = {
+  email: string;
+  password: string;
+};
+
+type TokenCredentials = {
   token: string;
   email: string;
   subscriptionId: string;
 };
+
+export type TickCredentials = EmailPasswordCredentials | TokenCredentials;

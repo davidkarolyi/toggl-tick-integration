@@ -8,7 +8,7 @@ import {
 import { observer } from "mobx-react-lite";
 import React, { FunctionComponent, useState } from "react";
 import { TimeEntry } from "../lib/adapters/types";
-import { AsyncState, useStore } from "../lib/store";
+import { AsyncState } from "../lib/store/types";
 import { format } from "date-fns";
 
 export const TimeEntryList: FunctionComponent<{

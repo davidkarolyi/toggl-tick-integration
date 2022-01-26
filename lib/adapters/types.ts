@@ -1,12 +1,19 @@
-export interface ReaderAdapter {
+export interface SourceAdapter<C extends AdapterCredentials> {
+  credentials: C;
+  init(credentials: C): Promise<void>;
+  getTimeEntries(from: Date, to: Date): Promise<Array<TimeEntry>>;
+}
+
+export interface TargetAdapter<C extends AdapterCredentials> {
+  credentials: C;
+  init(credentials: C): Promise<void>;
   getTimeEntries(from: Date, to: Date): Promise<Array<TimeEntry>>;
   getProjects(): Promise<Array<Project>>;
   getTasks(projectId: Project["id"]): Promise<Array<Task>>;
-}
-
-export interface WriterAdapter {
   createTimeEntry(entry: TimeEntry): Promise<void>;
 }
+
+export type AdapterCredentials = Record<string, unknown>;
 
 export type Project = {
   id: string;

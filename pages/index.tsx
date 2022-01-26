@@ -8,24 +8,40 @@ import { useStore } from "../lib/store";
 import { Alert } from "../components/Alert";
 import { IntegrationForm } from "../components/IntegrationForm";
 import { TimeEntryList } from "../components/TimeEntryList";
+import { useEffect } from "react";
 
 const Home: NextPage = observer(() => {
   const store = useStore();
+
+  useEffect(() => {
+    store.loadStoredCredentials();
+  }, []);
 
   return (
     <>
       <Alert />
       <Grid container spacing={2} padding={6}>
         <Grid item xs>
-          <PlatformContainer name="Toggl" iconUrl="/toggl_logo.png">
-            {store.toggl.value ? (
+          <PlatformContainer
+            name="Toggl"
+            iconUrl="/toggl_logo.png"
+            rightButton={
+              store.source.value
+                ? {
+                    content: "Forget Credentials",
+                    onClick: () => store.forgetSourceCredentials(),
+                  }
+                : undefined
+            }
+          >
+            {store.source.value ? (
               <TimeEntryList
-                state={store.togglTimeEntries}
-                selection={store.togglTimeEntriesSelection}
+                state={store.sourceTimeEntries}
+                selection={store.sourceTimeEntriesSelection}
                 onSelectionChange={(selection) =>
-                  store.setTogglTimeEntriesSelection(selection)
+                  store.setSourceTimeEntriesSelection(selection)
                 }
-                alreadySynced={store.alreadySyncedTogglEntries}
+                alreadySynced={store.alreadySyncedSourceEntries}
               />
             ) : (
               <TogglAuthForm />
@@ -38,9 +54,20 @@ const Home: NextPage = observer(() => {
           </PlatformContainer>
         </Grid>
         <Grid item xs>
-          <PlatformContainer name="Tick" iconUrl="/tick_logo.png">
-            {store.tick.value ? (
-              <TimeEntryList state={store.tickTimeEntries} />
+          <PlatformContainer
+            name="Tick"
+            iconUrl="/tick_logo.png"
+            rightButton={
+              store.target.value
+                ? {
+                    content: "Forget Credentials",
+                    onClick: () => store.forgetTargetCredentials(),
+                  }
+                : undefined
+            }
+          >
+            {store.target.value ? (
+              <TimeEntryList state={store.targetTimeEntries} />
             ) : (
               <TickAuthForm />
             )}
