@@ -28,3 +28,5 @@ export type AsyncState<T> = {
 };
 
 export type Alert = { type: AlertColor; message: string };
+
+export type DateRange = [Date, Date];

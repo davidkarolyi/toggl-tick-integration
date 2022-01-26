@@ -35,8 +35,3 @@ export type TimeEntry = {
   date: Date;
   durationInSeconds: number;
 };
-
-export type ProxyRequestConfig = Pick<
-  AxiosRequestConfig,
-  "url" | "method" | "headers" | "params" | "data"
->;

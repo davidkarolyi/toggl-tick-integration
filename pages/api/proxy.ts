@@ -2,7 +2,7 @@ import axios, { AxiosError, AxiosResponse } from "axios";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { BASE_URL as TICK_BASE_URL } from "../../lib/adapters/tick";
 import { BASE_URL as TOGGL_BASE_URL } from "../../lib/adapters/toggl";
-import { ProxyRequestConfig } from "../../lib/adapters/types";
+import { ProxyRequestConfig } from "../../lib/adapters/helpers/proxy";
 
 const BASE_URL_ALLOW_LIST = [TICK_BASE_URL, TOGGL_BASE_URL];
 const VALID_REQUEST_CONFIG_FIELDS = [

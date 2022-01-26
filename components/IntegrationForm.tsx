@@ -28,7 +28,8 @@ export const IntegrationForm: FunctionComponent = observer(() => {
             store.targetTimeEntries.isLoading
           }
           onChange={(newRange) => {
-            if (newRange[0] && newRange[1]) store.setDateRange(newRange);
+            if (newRange[0] && newRange[1])
+              store.setDateRange([newRange[0], newRange[1]]);
           }}
           renderInput={(startProps, endProps) => {
             return (
