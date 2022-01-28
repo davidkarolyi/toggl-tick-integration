@@ -1,3 +1,5 @@
+import { AxiosRequestConfig } from "axios";
+
 export interface SourceAdapter<C extends AdapterCredentials> {
   credentials: C;
   init(credentials: C): Promise<void>;

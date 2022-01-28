@@ -1,7 +1,8 @@
-import { proxy } from "./proxy";
+import { localizedPlainDateToISOString } from "./helpers/date";
+import { proxy } from "./helpers/proxy";
 import { Project, TargetAdapter, Task, TimeEntry } from "./types";
 
-const BASE_URL = "https://www.tickspot.com";
+export const BASE_URL = "https://www.tickspot.com";
 const API_URL = `${BASE_URL}/api/v2`;
 
 export class TickAdapter implements TargetAdapter<TickCredentials> {
@@ -84,8 +85,8 @@ export class TickAdapter implements TargetAdapter<TickCredentials> {
       url: `${this.subURL}/entries.json`,
       headers: this.authHeaders,
       params: {
-        start_date: from.toISOString().split("T")[0],
-        end_date: to.toISOString().split("T")[0],
+        start_date: localizedPlainDateToISOString(from),
+        end_date: localizedPlainDateToISOString(to),
       },
     });
 

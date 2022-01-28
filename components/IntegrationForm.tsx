@@ -1,7 +1,6 @@
 import { DateRangePicker, LoadingButton, LocalizationProvider } from "@mui/lab";
 import AdapterDateFns from "@mui/lab/AdapterDateFns";
 import {
-  Button,
   FormControl,
   InputLabel,
   MenuItem,
@@ -24,7 +23,14 @@ export const IntegrationForm: FunctionComponent = observer(() => {
           startText="From"
           endText="To"
           value={store.dateRange}
-          onChange={(newRange) => store.setDateRange(newRange)}
+          disabled={
+            store.sourceTimeEntries.isLoading ||
+            store.targetTimeEntries.isLoading
+          }
+          onChange={(newRange) => {
+            if (newRange[0] && newRange[1])
+              store.setDateRange([newRange[0], newRange[1]]);
+          }}
           renderInput={(startProps, endProps) => {
             return (
               <Stack direction="row" spacing={2}>

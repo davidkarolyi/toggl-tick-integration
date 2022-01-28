@@ -1,7 +1,9 @@
-import { proxy } from "./proxy";
+import { endOfDay, startOfDay } from "date-fns";
+import { proxy } from "./helpers/proxy";
 import { SourceAdapter, TimeEntry } from "./types";
 
-const API_URL = "https://api.track.toggl.com/api/v8";
+export const BASE_URL = "https://api.track.toggl.com";
+const API_URL = `${BASE_URL}/api/v8`;
 
 export class TogglAdapter implements SourceAdapter<TogglCredentials> {
   private unsafeCredentials?: TogglCredentials;
@@ -27,8 +29,8 @@ export class TogglAdapter implements SourceAdapter<TogglCredentials> {
       method: "GET",
       url: `${API_URL}/time_entries`,
       params: {
-        start_date: from.toISOString(),
-        end_date: to.toISOString(),
+        start_date: startOfDay(from).toISOString(),
+        end_date: endOfDay(to).toISOString(),
       },
       headers: this.authHeaders,
     });

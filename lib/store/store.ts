@@ -8,13 +8,13 @@ import {
   Task,
   TimeEntry,
 } from "../adapters/types";
-import { isSameDay, startOfToday, subWeeks } from "date-fns";
-import { DateRange } from "@mui/lab";
-import { Alert, AsyncState, StoreOptions } from "./types";
+import { endOfMonth, isSameDay, startOfMonth, subMonths } from "date-fns";
+import { Alert, AsyncState, DateRange, StoreOptions } from "./types";
+import { AxiosError } from "axios";
 
 export class Store<S extends AdapterCredentials, T extends AdapterCredentials> {
   alert: Alert | null = null;
-  dateRange: DateRange<Date> = [subWeeks(startOfToday(), 2), startOfToday()];
+  dateRange: DateRange = defaultDateRange();
 
   source: AsyncState<SourceAdapter<S>> = { isLoading: false };
   sourceTimeEntries: AsyncState<Array<TimeEntry>> = {
@@ -56,7 +56,7 @@ export class Store<S extends AdapterCredentials, T extends AdapterCredentials> {
     this.alert = alert;
   }
 
-  setDateRange(dateRange: DateRange<Date>) {
+  setDateRange(dateRange: DateRange) {
     this.dateRange = dateRange;
     if (this.target.value && this.selectedTargetTask)
       this.getTargetTimeEntries();
@@ -177,8 +177,7 @@ export class Store<S extends AdapterCredentials, T extends AdapterCredentials> {
         this.targetTimeEntries,
         async () => {
           const entries = await this.target.value?.getTimeEntries(
-            this.dateRange[0] as Date,
-            this.dateRange[1] as Date
+            ...this.dateRange
           );
           return entries?.filter(
             (entry) => entry.taskId === this.selectedTargetTask
@@ -195,8 +194,7 @@ export class Store<S extends AdapterCredentials, T extends AdapterCredentials> {
       this.sourceTimeEntries,
       async () => {
         const entries = await this.source.value?.getTimeEntries(
-          this.dateRange[0] as Date,
-          this.dateRange[1] as Date
+          ...this.dateRange
         );
         return entries;
       }
@@ -301,7 +299,16 @@ export class Store<S extends AdapterCredentials, T extends AdapterCredentials> {
         state.error = undefined;
       });
     } catch (error) {
-      this.setAlert({ type: "error", message: (error as Error).message });
+      const axiosError = error as AxiosError;
+      if (axiosError.isAxiosError && axiosError.response?.data) {
+        this.setAlert({
+          type: "error",
+          message: `${axiosError.message}. Check the browser console for detailed error response.`,
+        });
+        console.error(axiosError.response.data);
+      } else
+        this.setAlert({ type: "error", message: (error as Error).message });
+
       runInAction(() => {
         state.isLoading = false;
         state.error = error as Error;
@@ -309,4 +316,13 @@ export class Store<S extends AdapterCredentials, T extends AdapterCredentials> {
     }
     return state;
   }
+}
+
+function defaultDateRange(): DateRange {
+  const now = new Date();
+  const previousMonth = subMonths(now, 1);
+
+  if (now.getDate() <= 10)
+    return [startOfMonth(previousMonth), endOfMonth(previousMonth)];
+  else return [startOfMonth(now), endOfMonth(now)];
 }
