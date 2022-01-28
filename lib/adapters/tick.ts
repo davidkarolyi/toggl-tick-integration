@@ -13,6 +13,10 @@ export class TickAdapter implements TargetAdapter<TickCredentials> {
     else throw new Error("Adapter haven't initialized yet");
   }
 
+  get isAuthenticated(): boolean {
+    return Boolean(this.tokenCredentials);
+  }
+
   private get authHeaders() {
     return {
       Authorization: `Token token=${this.credentials.token}`,

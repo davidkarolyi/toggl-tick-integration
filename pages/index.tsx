@@ -21,7 +21,8 @@ const Home: NextPage = observer(() => {
   const store = useStore();
 
   useEffect(() => {
-    store.loadStoredCredentials();
+    store.source.loadStoredCredentials();
+    store.target.loadStoredCredentials();
   }, []);
 
   return (
@@ -33,24 +34,24 @@ const Home: NextPage = observer(() => {
             name="Toggl"
             iconUrl="/toggl_logo.png"
             rightButton={
-              store.source.value
+              store.source.isAuthenticated
                 ? {
                     content: "Forget Credentials",
-                    onClick: () => store.forgetSourceCredentials(),
+                    onClick: () => store.source.forgetCredentials(),
                   }
                 : undefined
             }
           >
-            {store.source.value ? (
+            {store.source.isAuthenticated ? (
               <TimeEntryList
-                state={store.sourceTimeEntries}
-                selection={store.sourceTimeEntriesSelection}
+                state={store.source.timeEntries}
+                selection={store.source.timeEntriesSelection}
                 onSelectionChange={(selection) =>
-                  store.setSourceTimeEntriesSelection(selection)
+                  store.source.setTimeEntriesSelection(selection)
                 }
                 label={{
                   text: "already synced",
-                  entries: store.alreadySyncedSourceEntries,
+                  entries: store.integration.alreadySyncedSourceEntries,
                 }}
               />
             ) : (
@@ -68,17 +69,17 @@ const Home: NextPage = observer(() => {
             name="Tick"
             iconUrl="/tick_logo.png"
             rightButton={
-              store.target.value
+              store.target.isAuthenticated
                 ? {
                     content: "Forget Credentials",
-                    onClick: () => store.forgetTargetCredentials(),
+                    onClick: () => store.target.forgetCredentials(),
                   }
                 : undefined
             }
           >
-            {store.target.value ? (
+            {store.target.isAuthenticated ? (
               <>
-                {Boolean(store.targetTimeEntries.value?.length) && (
+                {Boolean(store.target.timeEntries.value?.length) && (
                   <FormControlLabel
                     control={<Checkbox size="small" />}
                     label={
@@ -91,29 +92,30 @@ const Home: NextPage = observer(() => {
                         </Typography>
                       </Tooltip>
                     }
-                    value={store.allowDeletionFromTarget}
-                    onChange={() => store.toggleAllowDeletionFromTarget()}
+                    value={store.target.isDeletionAllowed}
+                    onChange={() => store.target.toggleIsDeletionAllowed()}
                   />
                 )}
 
-                {store.allowDeletionFromTarget ? (
+                {store.target.isDeletionAllowed ? (
                   <TimeEntryList
                     key="with-checkbox"
-                    state={store.targetTimeEntries}
-                    selection={store.targetTimeEntriesSelection}
+                    state={store.target.timeEntries}
+                    selection={store.target.timeEntriesSelection}
                     onSelectionChange={(selection) =>
-                      store.setTargetTimeEntriesSelection(selection)
+                      store.target.setTimeEntriesSelection(selection)
                     }
                     customCheckbox={DeletionCheckbox}
                     label={{
                       text: "not exists in Toggl",
-                      entries: store.targetEntriesNotExistingInSource,
+                      entries:
+                        store.integration.targetEntriesNotExistingInSource,
                     }}
                   />
                 ) : (
                   <TimeEntryList
                     key="without-checkbox"
-                    state={store.targetTimeEntries}
+                    state={store.target.timeEntries}
                   />
                 )}
               </>
