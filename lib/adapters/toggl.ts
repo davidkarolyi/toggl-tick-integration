@@ -13,6 +13,10 @@ export class TogglAdapter implements SourceAdapter<TogglCredentials> {
     else throw new Error("Adapter haven't initialized yet");
   }
 
+  get isAuthenticated(): boolean {
+    return Boolean(this.unsafeCredentials);
+  }
+
   private get authHeaders() {
     return {
       Authorization: "Basic " + btoa(`${this.credentials.token}:api_token`),

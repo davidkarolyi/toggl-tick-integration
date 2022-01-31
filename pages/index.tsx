@@ -1,5 +1,11 @@
 import type { NextPage } from "next";
-import { Grid } from "@mui/material";
+import {
+  Checkbox,
+  FormControlLabel,
+  Grid,
+  Tooltip,
+  Typography,
+} from "@mui/material";
 import { PlatformContainer } from "../components/PlatformContainer";
 import { TickAuthForm } from "../components/TickAuthForm";
 import { TogglAuthForm } from "../components/TogglAuthForm";
@@ -9,12 +15,14 @@ import { Alert } from "../components/Alert";
 import { IntegrationForm } from "../components/IntegrationForm";
 import { TimeEntryList } from "../components/TimeEntryList";
 import { useEffect } from "react";
+import { DeletionCheckbox } from "../components/DeletionCheckbox";
 
 const Home: NextPage = observer(() => {
   const store = useStore();
 
   useEffect(() => {
-    store.loadStoredCredentials();
+    store.source.loadStoredCredentials();
+    store.target.loadStoredCredentials();
   }, []);
 
   return (
@@ -26,22 +34,25 @@ const Home: NextPage = observer(() => {
             name="Toggl"
             iconUrl="/toggl_logo.png"
             rightButton={
-              store.source.value
+              store.source.isAuthenticated
                 ? {
                     content: "Forget Credentials",
-                    onClick: () => store.forgetSourceCredentials(),
+                    onClick: () => store.source.forgetCredentials(),
                   }
                 : undefined
             }
           >
-            {store.source.value ? (
+            {store.source.isAuthenticated ? (
               <TimeEntryList
-                state={store.sourceTimeEntries}
-                selection={store.sourceTimeEntriesSelection}
+                state={store.source.timeEntries}
+                selection={store.source.timeEntriesSelection}
                 onSelectionChange={(selection) =>
-                  store.setSourceTimeEntriesSelection(selection)
+                  store.source.setTimeEntriesSelection(selection)
                 }
-                alreadySynced={store.alreadySyncedSourceEntries}
+                label={{
+                  text: "already synced",
+                  entries: store.integration.alreadySyncedSourceEntries,
+                }}
               />
             ) : (
               <TogglAuthForm />
@@ -58,16 +69,56 @@ const Home: NextPage = observer(() => {
             name="Tick"
             iconUrl="/tick_logo.png"
             rightButton={
-              store.target.value
+              store.target.isAuthenticated
                 ? {
                     content: "Forget Credentials",
-                    onClick: () => store.forgetTargetCredentials(),
+                    onClick: () => store.target.forgetCredentials(),
                   }
                 : undefined
             }
           >
-            {store.target.value ? (
-              <TimeEntryList state={store.targetTimeEntries} />
+            {store.target.isAuthenticated ? (
+              <>
+                {Boolean(store.target.timeEntries.value?.length) && (
+                  <FormControlLabel
+                    control={<Checkbox size="small" />}
+                    label={
+                      <Tooltip
+                        arrow
+                        title="You will be able select entries, which will be deleted from Tick."
+                      >
+                        <Typography fontSize=".85rem">
+                          Allow deleting entries from Tick
+                        </Typography>
+                      </Tooltip>
+                    }
+                    value={store.target.isDeletionAllowed}
+                    onChange={() => store.target.toggleIsDeletionAllowed()}
+                  />
+                )}
+
+                {store.target.isDeletionAllowed ? (
+                  <TimeEntryList
+                    key="with-checkbox"
+                    state={store.target.timeEntries}
+                    selection={store.target.timeEntriesSelection}
+                    onSelectionChange={(selection) =>
+                      store.target.setTimeEntriesSelection(selection)
+                    }
+                    customCheckbox={DeletionCheckbox}
+                    label={{
+                      text: "not exists in Toggl",
+                      entries:
+                        store.integration.targetEntriesNotExistingInSource,
+                    }}
+                  />
+                ) : (
+                  <TimeEntryList
+                    key="without-checkbox"
+                    state={store.target.timeEntries}
+                  />
+                )}
+              </>
             ) : (
               <TickAuthForm />
             )}

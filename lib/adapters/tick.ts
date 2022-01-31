@@ -13,6 +13,10 @@ export class TickAdapter implements TargetAdapter<TickCredentials> {
     else throw new Error("Adapter haven't initialized yet");
   }
 
+  get isAuthenticated(): boolean {
+    return Boolean(this.tokenCredentials);
+  }
+
   private get authHeaders() {
     return {
       Authorization: `Token token=${this.credentials.token}`,
@@ -118,6 +122,14 @@ export class TickAdapter implements TargetAdapter<TickCredentials> {
         notes: entry.description,
         task_id: entry.taskId,
       },
+    });
+  }
+
+  async deleteTimeEntry(id: string): Promise<void> {
+    await proxy({
+      method: "DELETE",
+      url: `${this.subURL}/entries/${id}.json`,
+      headers: this.authHeaders,
     });
   }
 
