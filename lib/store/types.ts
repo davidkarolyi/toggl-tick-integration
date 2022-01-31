@@ -15,12 +15,6 @@ export interface RootStore<
   integration: IntegrationStore<S, T>;
 }
 
-export type AsyncState<T> = {
-  isLoading: boolean;
-  value?: T;
-  error?: Error;
-};
-
 export type Alert = { type: AlertColor; message: string };
 
 export type DateRange = [Date, Date];

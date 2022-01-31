@@ -7,17 +7,15 @@ import {
   Task,
   TimeEntry,
 } from "../adapters/types";
-import { AsyncState, RootStore } from "./types";
-import { AxiosError } from "axios";
+import { RootStore } from "./types";
+import { AsyncState } from "./async";
 import { CredentialStorage } from "../storage/types";
 
 export class TargetStore<C extends AdapterCredentials> {
-  authenticatedAdapter: AsyncState<TargetAdapter<C>> = { isLoading: false };
-  projects: AsyncState<Array<Project>> = { isLoading: false };
-  tasks: AsyncState<Array<Task>> = { isLoading: false };
-  timeEntries: AsyncState<Array<TimeEntry>> = {
-    isLoading: false,
-  };
+  authenticatedAdapter: AsyncState<TargetAdapter<C>> = new AsyncState();
+  projects: AsyncState<Array<Project>> = new AsyncState();
+  tasks: AsyncState<Array<Task>> = new AsyncState();
+  timeEntries: AsyncState<Array<TimeEntry>> = new AsyncState();
   isDeletionAllowed: boolean = false;
   timeEntriesSelection: Array<string> = [];
   selectedProject: Project["id"] = "";
@@ -45,26 +43,23 @@ export class TargetStore<C extends AdapterCredentials> {
 
   forgetCredentials() {
     this.options.credentialStorage.reset(this.options.platformName);
-    this.authenticatedAdapter = { isLoading: false };
+    this.authenticatedAdapter.reset();
     this.selectedTask = "";
     this.selectedProject = "";
-    this.projects = { isLoading: false };
-    this.tasks = { isLoading: false };
-    this.timeEntries = { isLoading: false };
+    this.projects.reset();
+    this.tasks.reset();
+    this.timeEntries.reset();
     this.timeEntriesSelection = [];
     this.isDeletionAllowed = false;
   }
 
   async auth(credentials: C) {
-    const { error, value: adapter } = await this.asyncAction(
-      this.authenticatedAdapter,
-      async () => {
-        await this.options.adapter.init(credentials);
-        return this.options.adapter;
-      }
-    );
+    await this.authenticatedAdapter.update(async () => {
+      await this.options.adapter.init(credentials);
+      return this.options.adapter;
+    });
 
-    if (error || !adapter)
+    if (this.authenticatedAdapter.error || !this.authenticatedAdapter.value)
       await this.options.credentialStorage.reset(this.options.platformName);
     else {
       this.options.rootStore.alert.set({
@@ -75,43 +70,48 @@ export class TargetStore<C extends AdapterCredentials> {
       if (!this.selectedTask) this.setTaskNotSelectedError();
       this.options.credentialStorage.set(
         this.options.platformName,
-        adapter.credentials
+        this.authenticatedAdapter.value.credentials
       );
     }
   }
 
   async getProjects() {
-    const { error, value: projects } = await this.asyncAction(
-      this.projects,
-      async () => this.authenticatedAdapter.value?.getProjects()
-    );
+    await this.projects.update(async () => {
+      if (!this.authenticatedAdapter.value)
+        throw new Error("Haven't authenticated yet");
+      return this.authenticatedAdapter.value.getProjects();
+    });
 
     if (
-      !error &&
+      !this.projects.error &&
       this.selectedProject &&
-      projects?.map(({ id }) => id).includes(this.selectedProject)
-    ) {
+      this.projects.value?.map(({ id }) => id).includes(this.selectedProject)
+    )
       this.getTasks(this.selectedProject);
-    }
   }
 
   getTasks(projectId: Task["projectId"]) {
-    this.asyncAction(this.tasks, async () =>
-      this.authenticatedAdapter.value?.getTasks(projectId)
-    );
+    this.tasks.update(async () => {
+      if (!this.authenticatedAdapter.value)
+        throw new Error("Haven't authenticated yet");
+      return this.authenticatedAdapter.value.getTasks(projectId);
+    });
   }
 
   async getTimeEntries() {
     if (!this.selectedTask) this.setTaskNotSelectedError();
     else {
-      const { error } = await this.asyncAction(this.timeEntries, async () => {
-        const entries = await this.authenticatedAdapter.value?.getTimeEntries(
+      await this.timeEntries.update(async () => {
+        if (!this.authenticatedAdapter.value)
+          throw new Error("Haven't authenticated yet");
+        const entries = await this.authenticatedAdapter.value.getTimeEntries(
           ...this.options.rootStore.integration.dateRange
         );
         return entries?.filter((entry) => entry.taskId === this.selectedTask);
       });
 
-      if (!error) this.options.rootStore.integration.selectDifferences();
+      if (!this.timeEntries.error)
+        this.options.rootStore.integration.selectDifferences();
     }
   }
 
@@ -137,50 +137,15 @@ export class TargetStore<C extends AdapterCredentials> {
   }
 
   setTaskNotSelectedError() {
-    this.timeEntries = {
-      error: new Error(
+    this.timeEntries.setError(
+      new Error(
         `Please select the target task in ${this.options.platformName}.`
-      ),
-      isLoading: false,
-    };
+      )
+    );
   }
 
   setTimeEntriesSelection(selection: Array<string>) {
     this.timeEntriesSelection = selection;
-  }
-
-  private async asyncAction<V>(
-    state: AsyncState<V>,
-    action: () => Promise<V>
-  ): Promise<AsyncState<V>> {
-    state.isLoading = true;
-    try {
-      const value = await action();
-      runInAction(() => {
-        state.isLoading = false;
-        state.value = value;
-        state.error = undefined;
-      });
-    } catch (error) {
-      const axiosError = error as AxiosError;
-      if (axiosError.isAxiosError && axiosError.response?.data) {
-        this.options.rootStore.alert.set({
-          type: "error",
-          message: `${axiosError.message}. Check the browser console for detailed error response.`,
-        });
-        console.error(axiosError.response.data);
-      } else
-        this.options.rootStore.alert.set({
-          type: "error",
-          message: (error as Error).message,
-        });
-
-      runInAction(() => {
-        state.isLoading = false;
-        state.error = error as Error;
-      });
-    }
-    return state;
   }
 }
 
