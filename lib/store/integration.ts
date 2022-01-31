@@ -3,17 +3,19 @@ import { makeAutoObservable, runInAction } from "mobx";
 import { AdapterCredentials, TimeEntry } from "../adapters/types";
 import { endOfMonth, isSameDay, startOfMonth, subMonths } from "date-fns";
 import { AsyncState, DateRange, RootStore } from "./types";
-import { AxiosError } from "axios";
 import { TransactionResult } from "../transaction/types";
 import { Transaction } from "../transaction/transaction";
+import { AsyncStateManager } from "./helpers/async";
+import { defaultDateRange } from "./helpers/date_range";
 
 export class IntegrationStore<
   S extends AdapterCredentials,
   T extends AdapterCredentials
 > {
   dateRange: DateRange = defaultDateRange();
-  submissionResult: AsyncState<TransactionResult> = { isLoading: false };
-  refreshState: AsyncState<void> = { isLoading: false };
+  submissionResult: AsyncState<TransactionResult> =
+    AsyncStateManager.defaultState();
+  refreshState: AsyncState<void> = AsyncStateManager.defaultState();
 
   constructor(readonly options: Options<S, T>) {
     makeAutoObservable(this);
@@ -61,7 +63,7 @@ export class IntegrationStore<
   }
 
   refresh() {
-    this.asyncAction(this.refreshState, async () => {
+    AsyncStateManager.updateState(this.refreshState, async () => {
       const { target, source } = this.options.rootStore;
 
       await Promise.all([source.getTimeEntries(), target.getTimeEntries()]);
@@ -73,7 +75,7 @@ export class IntegrationStore<
   async submit() {
     const { target, source } = this.options.rootStore;
 
-    await this.asyncAction(this.submissionResult, () => {
+    await AsyncStateManager.updateState(this.submissionResult, () => {
       const transaction = new Transaction(target.options.adapter);
 
       source.timeEntries.value
@@ -160,49 +162,6 @@ export class IntegrationStore<
       Math.abs(entryA.durationInSeconds - entryB.durationInSeconds) < 60
     );
   }
-
-  private async asyncAction<V>(
-    state: AsyncState<V>,
-    action: () => Promise<V>
-  ): Promise<AsyncState<V>> {
-    state.isLoading = true;
-    try {
-      const value = await action();
-      runInAction(() => {
-        state.isLoading = false;
-        state.value = value;
-        state.error = undefined;
-      });
-    } catch (error) {
-      const axiosError = error as AxiosError;
-      if (axiosError.isAxiosError && axiosError.response?.data) {
-        this.options.rootStore.alert.set({
-          type: "error",
-          message: `${axiosError.message}. Check the browser console for detailed error response.`,
-        });
-        console.error(axiosError.response.data);
-      } else
-        this.options.rootStore.alert.set({
-          type: "error",
-          message: (error as Error).message,
-        });
-
-      runInAction(() => {
-        state.isLoading = false;
-        state.error = error as Error;
-      });
-    }
-    return state;
-  }
-}
-
-function defaultDateRange(): DateRange {
-  const now = new Date();
-  const previousMonth = subMonths(now, 1);
-
-  if (now.getDate() <= 10)
-    return [startOfMonth(previousMonth), endOfMonth(previousMonth)];
-  else return [startOfMonth(now), endOfMonth(now)];
 }
 
 type Options<S extends AdapterCredentials, T extends AdapterCredentials> = {

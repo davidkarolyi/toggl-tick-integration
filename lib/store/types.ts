@@ -15,10 +15,10 @@ export interface RootStore<
   integration: IntegrationStore<S, T>;
 }
 
-export type AsyncState<T> = {
+export type AsyncState<T, Err = Error> = {
   isLoading: boolean;
   value?: T;
-  error?: Error;
+  error?: Err;
 };
 
 export type Alert = { type: AlertColor; message: string };

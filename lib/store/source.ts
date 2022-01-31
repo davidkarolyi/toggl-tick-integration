@@ -8,12 +8,12 @@ import {
 import { AsyncState, RootStore } from "./types";
 import { AxiosError } from "axios";
 import { CredentialStorage } from "../storage/types";
+import { AsyncStateManager } from "./helpers/async";
 
 export class SourceStore<C extends AdapterCredentials> {
-  authenticatedAdapter: AsyncState<SourceAdapter<C>> = { isLoading: false };
-  timeEntries: AsyncState<Array<TimeEntry>> = {
-    isLoading: false,
-  };
+  authenticatedAdapter: AsyncState<SourceAdapter<C>> =
+    AsyncStateManager.defaultState();
+  timeEntries: AsyncState<Array<TimeEntry>> = AsyncStateManager.defaultState();
   timeEntriesSelection: Array<string> = [];
 
   get name(): string {
@@ -37,19 +37,18 @@ export class SourceStore<C extends AdapterCredentials> {
 
   forgetCredentials() {
     this.options.credentialStorage.reset(this.options.platformName);
-    this.authenticatedAdapter = { isLoading: false };
+    this.authenticatedAdapter = AsyncStateManager.defaultState();
     this.timeEntriesSelection = [];
-    this.timeEntries = { isLoading: false };
+    this.timeEntries = AsyncStateManager.defaultState();
   }
 
   async auth(credentials: C) {
-    const { error, value: adapter } = await this.asyncAction(
-      this.authenticatedAdapter,
-      async () => {
-        await this.options.adapter.init(credentials);
-        return this.options.adapter;
-      }
-    );
+    await AsyncStateManager.updateState(this.authenticatedAdapter, async () => {
+      await this.options.adapter.init(credentials);
+      return this.options.adapter;
+    });
+
+    const { error, value: adapter } = this.authenticatedAdapter;
 
     if (error || !adapter)
       await this.options.credentialStorage.reset(this.options.platformName);
@@ -67,52 +66,19 @@ export class SourceStore<C extends AdapterCredentials> {
   }
 
   async getTimeEntries() {
-    const { error } = await this.asyncAction(this.timeEntries, async () => {
+    await AsyncStateManager.updateState(this.timeEntries, async () => {
       const entries = await this.authenticatedAdapter.value?.getTimeEntries(
         ...this.options.rootStore.integration.dateRange
       );
       return entries;
     });
 
-    if (!error) this.options.rootStore.integration.selectDifferences();
+    if (!this.authenticatedAdapter.error)
+      this.options.rootStore.integration.selectDifferences();
   }
 
   setTimeEntriesSelection(selection: Array<string>) {
     this.timeEntriesSelection = selection;
-  }
-
-  private async asyncAction<V>(
-    state: AsyncState<V>,
-    action: () => Promise<V>
-  ): Promise<AsyncState<V>> {
-    state.isLoading = true;
-    try {
-      const value = await action();
-      runInAction(() => {
-        state.isLoading = false;
-        state.value = value;
-        state.error = undefined;
-      });
-    } catch (error) {
-      const axiosError = error as AxiosError;
-      if (axiosError.isAxiosError && axiosError.response?.data) {
-        this.options.rootStore.alert.set({
-          type: "error",
-          message: `${axiosError.message}. Check the browser console for detailed error response.`,
-        });
-        console.error(axiosError.response.data);
-      } else
-        this.options.rootStore.alert.set({
-          type: "error",
-          message: (error as Error).message,
-        });
-
-      runInAction(() => {
-        state.isLoading = false;
-        state.error = error as Error;
-      });
-    }
-    return state;
   }
 }
 
