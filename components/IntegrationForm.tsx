@@ -25,8 +25,8 @@ export const IntegrationForm: FunctionComponent = observer(() => {
           endText="To"
           value={store.integration.dateRange}
           disabled={
-            store.source.timeEntries.isLoading ||
-            store.target.timeEntries.isLoading
+            store.source.timeEntries.isPending ||
+            store.target.timeEntries.isPending
           }
           onChange={(newRange) => {
             if (newRange[0] && newRange[1])
@@ -92,9 +92,9 @@ export const IntegrationForm: FunctionComponent = observer(() => {
             !store.source.isAuthenticated ||
             !store.target.isAuthenticated ||
             !store.target.selectedTask ||
-            store.integration.submissionResult.isLoading
+            store.integration.submissionResult.isPending
           }
-          loading={store.integration.refreshState.isLoading}
+          loading={store.integration.refreshState.isPending}
         >
           Refresh
         </LoadingButton>
@@ -102,11 +102,11 @@ export const IntegrationForm: FunctionComponent = observer(() => {
           onClick={() => store.integration.submit()}
           disabled={
             !store.integration.isSubmitable ||
-            store.integration.refreshState.isLoading
+            store.integration.refreshState.isPending
           }
           variant="contained"
           size="large"
-          loading={store.integration.submissionResult.isLoading}
+          loading={store.integration.submissionResult.isPending}
           startIcon={<AssignmentTurnedInRounded />}
         >
           Submit Selection

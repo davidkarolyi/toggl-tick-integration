@@ -11,7 +11,7 @@ export const TickAuthForm: FunctionComponent = observer(() => {
   const [password, setPassword] = useState("");
 
   const onSubmit = () => store.target.auth({ email, password });
-  const { isLoading } = store.target.authenticatedAdapter;
+  const { isPending } = store.target.authenticatedAdapter;
 
   return (
     <Stack spacing={2}>
@@ -20,7 +20,7 @@ export const TickAuthForm: FunctionComponent = observer(() => {
         label="Email"
         value={email}
         onChange={(event) => setEmail(event.target.value)}
-        disabled={isLoading}
+        disabled={isPending}
       />
       <TextField
         id="password"
@@ -29,13 +29,13 @@ export const TickAuthForm: FunctionComponent = observer(() => {
         autoComplete="current-password"
         value={password}
         onChange={(event) => setPassword(event.target.value)}
-        disabled={isLoading}
+        disabled={isPending}
       />
       <LoadingButton
         onClick={onSubmit}
         variant="contained"
         size="large"
-        loading={isLoading}
+        loading={isPending}
       >
         Authenticate
       </LoadingButton>

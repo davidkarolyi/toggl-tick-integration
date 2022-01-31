@@ -12,8 +12,11 @@ export class IntegrationStore<
   T extends AdapterCredentials
 > {
   dateRange: DateRange = defaultDateRange();
-  submissionResult: AsyncState<TransactionResult> = new AsyncState();
-  refreshState: AsyncState<void> = new AsyncState();
+  submissionResult: AsyncState<TransactionResult> = new AsyncState(
+    this,
+    "submissionResult"
+  );
+  refreshState: AsyncState<void> = new AsyncState(this, "refreshState");
 
   constructor(readonly options: Options<S, T>) {
     makeAutoObservable(this);

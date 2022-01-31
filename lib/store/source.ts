@@ -1,4 +1,4 @@
-import { autorun, makeAutoObservable, when } from "mobx";
+import { makeAutoObservable } from "mobx";
 
 import {
   AdapterCredentials,
@@ -10,8 +10,14 @@ import { AsyncState } from "./async";
 import { CredentialStorage } from "../storage/types";
 
 export class SourceStore<C extends AdapterCredentials> {
-  authenticatedAdapter: AsyncState<SourceAdapter<C>> = new AsyncState();
-  timeEntries: AsyncState<Array<TimeEntry>> = new AsyncState();
+  authenticatedAdapter: AsyncState<SourceAdapter<C>> = new AsyncState(
+    this,
+    "authenticatedAdapter"
+  );
+  timeEntries: AsyncState<Array<TimeEntry>> = new AsyncState(
+    this,
+    "timeEntries"
+  );
   timeEntriesSelection: Array<string> = [];
 
   get name(): string {

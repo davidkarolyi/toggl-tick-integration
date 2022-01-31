@@ -1,4 +1,4 @@
-import { makeAutoObservable, runInAction } from "mobx";
+import { makeAutoObservable } from "mobx";
 
 import {
   AdapterCredentials,
@@ -12,10 +12,16 @@ import { AsyncState } from "./async";
 import { CredentialStorage } from "../storage/types";
 
 export class TargetStore<C extends AdapterCredentials> {
-  authenticatedAdapter: AsyncState<TargetAdapter<C>> = new AsyncState();
-  projects: AsyncState<Array<Project>> = new AsyncState();
-  tasks: AsyncState<Array<Task>> = new AsyncState();
-  timeEntries: AsyncState<Array<TimeEntry>> = new AsyncState();
+  authenticatedAdapter: AsyncState<TargetAdapter<C>> = new AsyncState(
+    this,
+    "authenticatedAdapter"
+  );
+  projects: AsyncState<Array<Project>> = new AsyncState(this, "projects");
+  tasks: AsyncState<Array<Task>> = new AsyncState(this, "tasks");
+  timeEntries: AsyncState<Array<TimeEntry>> = new AsyncState(
+    this,
+    "timeEntries"
+  );
   isDeletionAllowed: boolean = false;
   timeEntriesSelection: Array<string> = [];
   selectedProject: Project["id"] = "";

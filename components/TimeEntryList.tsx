@@ -7,7 +7,7 @@ import {
 } from "@mui/x-data-grid";
 import React, { FunctionComponent, useState } from "react";
 import { TimeEntry } from "../lib/adapters/types";
-import { AsyncState } from "../lib/store/types";
+import { AsyncState } from "../lib/store/async";
 import { format } from "date-fns";
 import { observer } from "mobx-react-lite";
 
@@ -25,7 +25,7 @@ export const TimeEntryList: FunctionComponent<{
     { field: "date", sort: "asc" },
   ]);
 
-  if (props.state.isLoading) {
+  if (props.state.isPending) {
     return (
       <>
         <Skeleton />

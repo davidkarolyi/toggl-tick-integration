@@ -7,7 +7,7 @@ import { useStore } from "../lib/store";
 export const TogglAuthForm: FunctionComponent = observer(() => {
   const store = useStore();
   const [token, setToken] = useState("");
-  const { isLoading } = store.source.authenticatedAdapter;
+  const { isPending } = store.source.authenticatedAdapter;
 
   return (
     <Stack spacing={2}>
@@ -17,13 +17,13 @@ export const TogglAuthForm: FunctionComponent = observer(() => {
         type="password"
         value={token}
         onChange={(event) => setToken(event.target.value)}
-        disabled={isLoading}
+        disabled={isPending}
       />
       <LoadingButton
         variant="contained"
         size="large"
         onClick={() => store.source.auth({ token })}
-        loading={isLoading}
+        loading={isPending}
       >
         Authenticate
       </LoadingButton>
