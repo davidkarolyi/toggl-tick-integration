@@ -69,7 +69,7 @@ export class SourceStore<C extends AdapterCredentials> {
       return entries;
     });
 
-    if (!this.authenticatedAdapter.error)
+    if (!this.timeEntries.error)
       this.options.rootStore.integration.selectDifferences();
   }
 
