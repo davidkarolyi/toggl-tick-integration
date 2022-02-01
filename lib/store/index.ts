@@ -15,20 +15,20 @@ class TogglTickStore implements RootStore<TogglCredentials, TickCredentials> {
   integration: IntegrationStore<TogglCredentials, TickCredentials>;
 
   constructor() {
-    const credentialStorage = new LocalStorage();
+    const storage = new LocalStorage();
 
     this.alert = new AlertStore();
     this.source = new SourceStore({
       rootStore: this,
       platformName: "Toggl",
       adapter: new TogglAdapter(),
-      credentialStorage,
+      storage,
     });
     this.target = new TargetStore({
       rootStore: this,
       platformName: "Tick",
       adapter: new TickAdapter(),
-      credentialStorage,
+      storage,
     });
     this.integration = new IntegrationStore({
       rootStore: this,

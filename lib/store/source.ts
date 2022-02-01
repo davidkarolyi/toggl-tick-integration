@@ -6,8 +6,7 @@ import {
   TimeEntry,
 } from "../adapters/types";
 import { AsyncState, RootStore } from "./types";
-import { AxiosError } from "axios";
-import { CredentialStorage } from "../storage/types";
+import { Storage } from "../storage/types";
 import { AsyncStateManager } from "./helpers/async";
 
 export class SourceStore<C extends AdapterCredentials> {
@@ -29,14 +28,14 @@ export class SourceStore<C extends AdapterCredentials> {
   }
 
   async loadStoredCredentials() {
-    const credentials = await this.options.credentialStorage.get<C>(
+    const credentials = await this.options.storage.get<C>(
       this.options.platformName
     );
     if (credentials) this.auth(credentials);
   }
 
   forgetCredentials() {
-    this.options.credentialStorage.reset(this.options.platformName);
+    this.options.storage.reset(this.options.platformName);
     this.authenticatedAdapter = AsyncStateManager.defaultState();
     this.timeEntriesSelection = [];
     this.timeEntries = AsyncStateManager.defaultState();
@@ -51,17 +50,14 @@ export class SourceStore<C extends AdapterCredentials> {
     const { error, value: adapter } = this.authenticatedAdapter;
 
     if (error || !adapter)
-      await this.options.credentialStorage.reset(this.options.platformName);
+      await this.options.storage.reset(this.options.platformName);
     else {
       this.options.rootStore.alert.set({
         type: "success",
         message: "Successfully authenticated!",
       });
       this.getTimeEntries();
-      this.options.credentialStorage.set(
-        this.options.platformName,
-        adapter.credentials
-      );
+      this.options.storage.set(this.options.platformName, adapter.credentials);
     }
   }
 
@@ -86,5 +82,5 @@ type Options<C extends AdapterCredentials> = {
   rootStore: RootStore<C>;
   platformName: string;
   adapter: SourceAdapter<C>;
-  credentialStorage: CredentialStorage;
+  storage: Storage;
 };

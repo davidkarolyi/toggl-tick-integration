@@ -1,7 +1,7 @@
-import { makeAutoObservable, runInAction } from "mobx";
+import { makeAutoObservable } from "mobx";
 
 import { AdapterCredentials, TimeEntry } from "../adapters/types";
-import { endOfMonth, isSameDay, startOfMonth, subMonths } from "date-fns";
+import { isSameDay } from "date-fns";
 import { AsyncState, DateRange, RootStore } from "./types";
 import { TransactionResult } from "../transaction/types";
 import { Transaction } from "../transaction/transaction";

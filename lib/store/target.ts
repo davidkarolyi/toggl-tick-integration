@@ -1,4 +1,4 @@
-import { makeAutoObservable, runInAction } from "mobx";
+import { makeAutoObservable } from "mobx";
 
 import {
   AdapterCredentials,
@@ -8,8 +8,7 @@ import {
   TimeEntry,
 } from "../adapters/types";
 import { AsyncState, RootStore } from "./types";
-import { AxiosError } from "axios";
-import { CredentialStorage } from "../storage/types";
+import { Storage } from "../storage/types";
 import { AsyncStateManager } from "./helpers/async";
 
 export class TargetStore<C extends AdapterCredentials> {
@@ -38,15 +37,43 @@ export class TargetStore<C extends AdapterCredentials> {
   }
 
   async loadStoredCredentials() {
-    const credentials = await this.options.credentialStorage.get<C>(
+    const credentials = await this.options.storage.get<C>(
       this.options.platformName
     );
 
     if (credentials) this.auth(credentials);
   }
 
+  async loadStoredSelectedProject() {
+    const selectedProject = await this.options.storage.get<string>(
+      `${this.options.platformName}_selectedProject`
+    );
+
+    if (!selectedProject) return;
+    else if (!this.projects.value?.find(({ id }) => id === selectedProject))
+      await this.options.storage.reset(
+        `${this.options.platformName}_selectedProject`
+      );
+    else this.setSelectedProject(selectedProject);
+  }
+
+  async loadStoredSelectedTask() {
+    const selectedTask = await this.options.storage.get<string>(
+      `${this.options.platformName}_selectedTask`
+    );
+
+    if (!selectedTask) return;
+    else if (!this.tasks.value?.find(({ id }) => id === selectedTask))
+      await this.options.storage.reset(
+        `${this.options.platformName}_selectedTask`
+      );
+    else this.setSelectedTask(selectedTask);
+  }
+
   forgetCredentials() {
-    this.options.credentialStorage.reset(this.options.platformName);
+    this.options.storage.reset(this.options.platformName);
+    this.options.storage.reset(`${this.options.platformName}_selectedTask`);
+    this.options.storage.reset(`${this.options.platformName}_selectedProject`);
     this.authenticatedAdapter = AsyncStateManager.defaultState();
     this.selectedTask = "";
     this.selectedProject = "";
@@ -66,7 +93,7 @@ export class TargetStore<C extends AdapterCredentials> {
     const { error, value: adapter } = this.authenticatedAdapter;
 
     if (error || !adapter)
-      await this.options.credentialStorage.reset(this.options.platformName);
+      await this.options.storage.reset(this.options.platformName);
     else {
       this.options.rootStore.alert.set({
         type: "success",
@@ -74,10 +101,7 @@ export class TargetStore<C extends AdapterCredentials> {
       });
       this.getProjects();
       if (!this.selectedTask) this.setTaskNotSelectedError();
-      this.options.credentialStorage.set(
-        this.options.platformName,
-        adapter.credentials
-      );
+      this.options.storage.set(this.options.platformName, adapter.credentials);
     }
   }
 
@@ -86,8 +110,11 @@ export class TargetStore<C extends AdapterCredentials> {
       this.authenticatedAdapter.value?.getProjects()
     );
 
+    if (this.projects.error) return;
+
+    if (!this.selectedProject) await this.loadStoredSelectedProject();
+
     if (
-      !this.projects.error &&
       this.selectedProject &&
       this.projects.value?.map(({ id }) => id).includes(this.selectedProject)
     ) {
@@ -95,10 +122,13 @@ export class TargetStore<C extends AdapterCredentials> {
     }
   }
 
-  getTasks(projectId: Task["projectId"]) {
-    AsyncStateManager.updateState(this.tasks, async () =>
+  async getTasks(projectId: Task["projectId"]) {
+    await AsyncStateManager.updateState(this.tasks, async () =>
       this.authenticatedAdapter.value?.getTasks(projectId)
     );
+
+    if (!this.tasks.error && !this.selectedTask)
+      await this.loadStoredSelectedTask();
   }
 
   async getTimeEntries() {
@@ -128,12 +158,18 @@ export class TargetStore<C extends AdapterCredentials> {
     this.timeEntriesSelection = [];
     this.isDeletionAllowed = false;
     this.selectedTask = "";
+    this.options.storage.set(
+      `${this.options.platformName}_selectedProject`,
+      id
+    );
     this.setTaskNotSelectedError();
     this.getTasks(id);
   }
 
   setSelectedTask(id: Task["id"]) {
+    if (id === this.selectedTask) return;
     this.selectedTask = id;
+    this.options.storage.set(`${this.options.platformName}_selectedTask`, id);
     this.getTimeEntries();
   }
 
@@ -155,5 +191,5 @@ type Options<C extends AdapterCredentials> = {
   rootStore: RootStore<{}, C>;
   platformName: string;
   adapter: TargetAdapter<C>;
-  credentialStorage: CredentialStorage;
+  storage: Storage;
 };
