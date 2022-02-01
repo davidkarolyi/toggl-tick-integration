@@ -83,6 +83,14 @@ export const TimeEntryList: FunctionComponent<{
 
   return (
     <>
+      <Typography fontWeight="bold" fontSize=".85rem" textAlign="end">
+        Total: {total}
+      </Typography>
+      {selectedTotal && (
+        <Typography fontWeight="bold" fontSize=".85rem" textAlign="end">
+          Selected Total: {selectedTotal}
+        </Typography>
+      )}
       <DataGrid
         rows={rows}
         columns={columns}
@@ -103,14 +111,6 @@ export const TimeEntryList: FunctionComponent<{
           BaseCheckbox: props.customCheckbox,
         }}
       />
-      <Typography fontWeight="bold" mt={2} textAlign="end">
-        Total: {total}
-      </Typography>
-      {selectedTotal && (
-        <Typography fontWeight="bold" textAlign="end">
-          Selected Total: {selectedTotal}
-        </Typography>
-      )}
     </>
   );
 });
