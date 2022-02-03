@@ -30,7 +30,12 @@ export const PlatformContainer: FunctionComponent<PlatformContainerProps> = (
             direction="row"
           >
             {props.iconUrl && (
-              <Image src={props.iconUrl} height={40} width={40} />
+              <Image
+                alt={props.name}
+                src={props.iconUrl}
+                height={40}
+                width={40}
+              />
             )}
             <Typography variant="h4" textAlign="center" component="div">
               {props.name}
