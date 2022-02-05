@@ -8,8 +8,9 @@ import {
   Stack,
   TextField,
 } from "@mui/material";
+import { RefreshRounded, AssignmentTurnedInRounded } from "@mui/icons-material";
 import { observer } from "mobx-react-lite";
-import React, { FunctionComponent, useState } from "react";
+import React, { FunctionComponent } from "react";
 import { useStore } from "../lib/store";
 
 export const IntegrationForm: FunctionComponent = observer(() => {
@@ -22,14 +23,14 @@ export const IntegrationForm: FunctionComponent = observer(() => {
         <DateRangePicker
           startText="From"
           endText="To"
-          value={store.dateRange}
+          value={store.integration.dateRange}
           disabled={
-            store.sourceTimeEntries.isLoading ||
-            store.targetTimeEntries.isLoading
+            store.source.timeEntries.isLoading ||
+            store.target.timeEntries.isLoading
           }
           onChange={(newRange) => {
             if (newRange[0] && newRange[1])
-              store.setDateRange([newRange[0], newRange[1]]);
+              store.integration.setDateRange([newRange[0], newRange[1]]);
           }}
           renderInput={(startProps, endProps) => {
             return (
@@ -46,12 +47,16 @@ export const IntegrationForm: FunctionComponent = observer(() => {
           <Select
             labelId="project-select-label"
             id="project-select"
-            value={store.selectedTargetProject}
+            value={store.target.selectedProject}
             label="Project"
-            onChange={(event) => store.setTargetProject(event.target.value)}
-            disabled={!store.target.value || !store.targetProjects.value}
+            onChange={(event) =>
+              store.target.setSelectedProject(event.target.value)
+            }
+            disabled={
+              !store.target.isAuthenticated || !store.target.projects.value
+            }
           >
-            {store.targetProjects.value?.map((project) => (
+            {store.target.projects.value?.map((project) => (
               <MenuItem key={project.id} value={project.id}>
                 {project.name}
               </MenuItem>
@@ -63,12 +68,16 @@ export const IntegrationForm: FunctionComponent = observer(() => {
           <Select
             labelId="task-select-label"
             id="task-select"
-            value={store.selectedTargetTask}
+            value={store.target.selectedTask}
             label="Task"
-            onChange={(event) => store.setTargetTask(event.target.value)}
-            disabled={!store.selectedTargetProject || !store.targetTasks.value}
+            onChange={(event) =>
+              store.target.setSelectedTask(event.target.value)
+            }
+            disabled={
+              !store.target.selectedProject || !store.target.tasks.value
+            }
           >
-            {store.targetTasks.value?.map((task) => (
+            {store.target.tasks.value?.map((task) => (
               <MenuItem key={task.id} value={task.id}>
                 {task.name}
               </MenuItem>
@@ -76,19 +85,31 @@ export const IntegrationForm: FunctionComponent = observer(() => {
           </Select>
         </FormControl>
         <LoadingButton
-          onClick={() => store.submitSelectedEntries()}
+          onClick={() => store.integration.refresh()}
+          variant="text"
+          startIcon={<RefreshRounded />}
           disabled={
-            !(
-              store.isAuthenticated &&
-              store.selectedTargetTask &&
-              store.sourceTimeEntriesSelection.length
-            )
+            !store.source.isAuthenticated ||
+            !store.target.isAuthenticated ||
+            !store.target.selectedTask ||
+            store.integration.submissionResult.isLoading
+          }
+          loading={store.integration.refreshState.isLoading}
+        >
+          Refresh
+        </LoadingButton>
+        <LoadingButton
+          onClick={() => store.integration.submit()}
+          disabled={
+            !store.integration.isSubmitable ||
+            store.integration.refreshState.isLoading
           }
           variant="contained"
           size="large"
-          loading={store.submissionState.isLoading}
+          loading={store.integration.submissionResult.isLoading}
+          startIcon={<AssignmentTurnedInRounded />}
         >
-          Submit selection
+          Submit Selection
         </LoadingButton>
       </Stack>
     </LocalizationProvider>

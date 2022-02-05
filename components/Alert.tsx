@@ -6,11 +6,11 @@ import { useStore } from "../lib/store";
 export const Alert: FunctionComponent = observer(() => {
   const store = useStore();
 
-  const closeAlert = () => store.setAlert(null);
+  const closeAlert = () => store.alert.set(null);
 
   return (
     <Snackbar
-      open={store.alert !== null}
+      open={store.alert.value !== null}
       autoHideDuration={4000}
       onClose={closeAlert}
       anchorOrigin={{ vertical: "top", horizontal: "center" }}
@@ -19,10 +19,10 @@ export const Alert: FunctionComponent = observer(() => {
         elevation={6}
         variant="filled"
         onClose={closeAlert}
-        severity={store.alert?.type}
+        severity={store.alert.value?.type}
         sx={{ width: "100%" }}
       >
-        {store.alert?.message}
+        {store.alert.value?.message}
       </MUIAlert>
     </Snackbar>
   );
