@@ -8,8 +8,9 @@ import {
   Stack,
   TextField,
 } from "@mui/material";
+import { RefreshRounded, AssignmentTurnedInRounded } from "@mui/icons-material";
 import { observer } from "mobx-react-lite";
-import React, { FunctionComponent, useState } from "react";
+import React, { FunctionComponent } from "react";
 import { useStore } from "../lib/store";
 
 export const IntegrationForm: FunctionComponent = observer(() => {
@@ -76,19 +77,27 @@ export const IntegrationForm: FunctionComponent = observer(() => {
           </Select>
         </FormControl>
         <LoadingButton
-          onClick={() => store.submitSelectedEntries()}
+          onClick={() => store.refresh()}
+          variant="text"
+          startIcon={<RefreshRounded />}
           disabled={
-            !(
-              store.isAuthenticated &&
-              store.selectedTargetTask &&
-              store.sourceTimeEntriesSelection.length
-            )
+            !store.isAuthenticated ||
+            !store.selectedTargetTask ||
+            store.submissionResult.isLoading
           }
+          loading={store.refreshState.isLoading}
+        >
+          Refresh
+        </LoadingButton>
+        <LoadingButton
+          onClick={() => store.submitSelectedEntries()}
+          disabled={!store.isSubmitable || store.refreshState.isLoading}
           variant="contained"
           size="large"
-          loading={store.submissionState.isLoading}
+          loading={store.submissionResult.isLoading}
+          startIcon={<AssignmentTurnedInRounded />}
         >
-          Submit selection
+          Submit Selection
         </LoadingButton>
       </Stack>
     </LocalizationProvider>

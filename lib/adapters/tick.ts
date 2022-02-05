@@ -121,6 +121,14 @@ export class TickAdapter implements TargetAdapter<TickCredentials> {
     });
   }
 
+  async deleteTimeEntry(id: string): Promise<void> {
+    await proxy({
+      method: "DELETE",
+      url: `${this.subURL}/entries/${id}.json`,
+      headers: this.authHeaders,
+    });
+  }
+
   private async testCredentials() {
     await proxy({
       method: "GET",
